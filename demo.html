@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Octagon with Circling Letters</title>
+    <style>
+        body { margin: 0; background: black; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        // === Canvas Setup ===
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // === Subject (Octagon) ===
+        class Octagon {
+            constructor(x, y, radius) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.velocityY = 0;
+                this.gravity = 0.1;
+                this.observers = [];
+            }
+
+            addObserver(observer) {
+                this.observers.push(observer);
+            }
+
+            notifyObservers() {
+                this.observers.forEach(observer => observer.update(this.x, this.y));
+            }
+
+            update() {
+                this.velocityY += this.gravity;
+                this.y += this.velocityY;
+
+                // Bounce at bottom
+                if (this.y + this.radius > canvas.height) {
+                    this.y = canvas.height - this.radius;
+                    this.velocityY *= -0.7;
+                }
+
+                this.notifyObservers();
+            }
+
+            draw() {
+                ctx.strokeStyle = "#00FF00";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < 8; i++) {
+                    let angle = (i / 8) * 2 * Math.PI;
+                    let vx = this.x + this.radius * Math.cos(angle);
+                    let vy = this.y + this.radius * Math.sin(angle);
+                    i === 0 ? ctx.moveTo(vx, vy) : ctx.lineTo(vx, vy);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+        }
+
+        // === Observer (Letter) ===
+        class Letter {
+            constructor(letter, index, octagon) {
+                this.letter = letter;
+                this.index = index;
+                this.angle = (index / 8) * 2 * Math.PI;
+                this.radius = octagon.radius * 0.6;
+                this.speed = 0.02;
+                this.x = 0;
+                this.y = 0;
+                octagon.addObserver(this);
+            }
+
+            update(cx, cy) {
+                this.angle += this.speed;
+                this.x = cx + this.radius * Math.cos(this.angle);
+                this.y = cy + this.radius * Math.sin(this.angle);
+            }
+
+            draw() {
+                ctx.fillStyle = "#0F0";
+                ctx.font = "20px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(this.letter, this.x, this.y);
+            }
+        }
+
+        // === Initialize Octagon and Observers ===
+        let octagon = new Octagon(canvas.width / 2, 100, 80);
+        let letters = "ABCDEFGH".split("").map((char, i) => new Letter(char, i, octagon));
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            octagon.update();
+            octagon.draw();
+            letters.forEach(letter => letter.draw());
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
